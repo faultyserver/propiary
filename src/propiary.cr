@@ -1,283 +1,217 @@
-{% for prefixes in { {"", "", "@"}, {"class_", "self.", "@@"} } %}
-  {%
-    macro_prefix = prefixes[0].id
-    method_prefix = prefixes[1].id
-    var_prefix = prefixes[2].id
-  %}
-
-  macro {{macro_prefix}}getter(*names, &block)
-    \{% if block %}
-      \{% if names.size != 1 %}
-        \{{ raise "Only one argument can be passed to `getter` with a block" }}
-      \{% end %}
-
-      \{% name = names[0] %}
-
-      \{% if name.is_a?(TypeDeclaration) %}
-        {{var_prefix}}\{{name.var.id}} : \{{name.type}}?
-
-        def {{method_prefix}}\{{name.var.id}}
-          if (value = {{var_prefix}}\{{name.var.id}}).nil?
-            {{var_prefix}}\{{name.var.id}} = \{{yield}}
-          else
-            value
-          end
-        end
-      \{% else %}
-        def {{method_prefix}}\{{name.id}}
-          if (value = {{var_prefix}}\{{name.id}}).nil?
-            {{var_prefix}}\{{name.id}} = \{{yield}}
-          else
-            value
-          end
-        end
-      \{% end %}
-    \{% else %}
-      \{% for name in names %}
-        \{% if name.is_a?(TypeDeclaration) %}
-          {{var_prefix}}\{{name}}
-
-          def {{method_prefix}}\{{name.var.id}} : \{{name.type}}
-            {{var_prefix}}\{{name.var.id}}
-          end
-        \{% elsif name.is_a?(Assign) %}
-          {{var_prefix}}\{{name}}
-
-          def {{method_prefix}}\{{name.target.id}}
-            {{var_prefix}}\{{name.target.id}}
-          end
-        \{% else %}
-          def {{method_prefix}}\{{name.id}}
-            {{var_prefix}}\{{name.id}}
-          end
-        \{% end %}
-      \{% end %}
-    \{% end %}
+abstract class Object
+  macro inherited
+    Prop_Types = [] of {name: String, type: String}
   end
 
-  macro {{macro_prefix}}getter!(*names)
-    \{% for name in names %}
-      \{% if name.is_a?(TypeDeclaration) %}
-        {{var_prefix}}\{{name}}?
-        \{% name = name.var %}
-      \{% end %}
 
-      def {{method_prefix}}\{{name.id}}?
-        {{var_prefix}}\{{name.id}}
+  macro getter(*names, &block)
+    {% if block %}
+      {% if names.size != 1 %}
+        {{ raise "[Using Propiary]: Only one argument can be passed to `getter` with a block" }}
+      {% end %}
+
+      {% name = names[0] %}
+
+      {% if name.is_a?(TypeDeclaration) %}
+        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+        @{{name.var.id}} : {{name.type}}?
+
+        def {{name.var.id}}
+          if (value = @{{name.var.id}}).nil?
+            @{{name.var.id}} = {{yield}}
+          else
+            value
+          end
+        end
+      {% else %}
+        {{ raise "[Using Propiary]: names given to `getter` must be type declarations (e.g. `name : String`)" }}
+      {% end %}
+    {% else %}
+      {% for name in names %}
+        {% if name.is_a?(TypeDeclaration) %}
+          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          @{{name}}
+
+          def {{name.var.id}} : {{name.type}}
+            @{{name.var.id}}
+          end
+        {% else %}
+          {{ raise "[Using Propiary]: names given to `getter` must be type declarations (e.g. `name : String`)" }}
+        {% end %}
+      {% end %}
+    {% end %}
+  end
+
+  macro getter!(*names)
+    {% for name in names %}
+      {% if name.is_a?(TypeDeclaration) %}
+        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+        @{{name}}?
+        {% name = name.var %}
+      {% else %}
+        {{ raise "[Using Propiary]: names given to `getter!` must be type declarations (e.g. `name : String`)" }}
+      {% end %}
+
+      def {{name.id}}?
+        @{{name.id}}
       end
 
-      def {{method_prefix}}\{{name.id}}
-        {{var_prefix}}\{{name.id}}.not_nil!
+      def {{name.id}}
+        @{{name.id}}.not_nil!
       end
-    \{% end %}
+    {% end %}
   end
 
-  macro {{macro_prefix}}getter?(*names, &block)
-    \{% if block %}
-      \{% if names.size != 1 %}
-        \{{ raise "Only one argument can be passed to `getter?` with a block" }}
-      \{% end %}
+  macro getter?(*names, &block)
+    {% if block %}
+      {% if names.size != 1 %}
+        {{ raise "[Using Propiary]: Only one argument can be passed to `getter?` with a block" }}
+      {% end %}
 
-      \{% name = names[0] %}
+      {% name = names[0] %}
 
-      \{% if name.is_a?(TypeDeclaration) %}
-        {{var_prefix}}\{{name.var.id}} : \{{name.type}}?
+      {% if name.is_a?(TypeDeclaration) %}
+        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+        @{{name.var.id}} : {{name.type}}?
 
-        def {{method_prefix}}\{{name.var.id}}?
-          if (value = {{var_prefix}}\{{name.var.id}}).nil?
-            {{var_prefix}}\{{name.var.id}} = \{{yield}}
+        def {{name.var.id}}?
+          if (value = @{{name.var.id}}).nil?
+            @{{name.var.id}} = {{yield}}
           else
             value
           end
         end
-      \{% else %}
-        def {{method_prefix}}\{{name.id}}?
-          if (value = {{var_prefix}}\{{name.id}}).nil?
-            {{var_prefix}}\{{name.id}} = \{{yield}}
+      {% else %}
+        {{ raise "[Using Propiary]: names given to `getter?` must be type declarations (e.g. `name : String`)" }}
+      {% end %}
+    {% else %}
+      {% for name in names %}
+        {% if name.is_a?(TypeDeclaration) %}
+          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          @{{name}}
+
+          def {{name.var.id}}? : {{name.type}}
+            @{{name.var.id}}
+          end
+        {% else %}
+          {{ raise "[Using Propiary]: names given to `getter?` must be type declarations (e.g. `name : String`)" }}
+        {% end %}
+      {% end %}
+    {% end %}
+  end
+
+  macro setter(*names)
+    {% for name in names %}
+      {% if name.is_a?(TypeDeclaration) %}
+        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+        @{{name}}
+
+        def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
+        end
+      {% else %}
+        {{ raise "[Using Propiary]: names given to `setter` must be type declarations (e.g. `name : String`)" }}
+      {% end %}
+    {% end %}
+  end
+
+  macro property(*names, &block)
+    {% if block %}
+      {% if names.size != 1 %}
+        {{ raise "[Using Propiary]: Only one argument can be passed to `property` with a block" }}
+      {% end %}
+
+      {% name = names[0] %}
+
+      setter {{name}}
+
+      {% if name.is_a?(TypeDeclaration) %}
+        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+        @{{name.var.id}} : {{name.type}}?
+
+        def {{name.var.id}}
+          if (value = @{{name.var.id}}).nil?
+            @{{name.var.id}} = {{yield}}
           else
             value
           end
         end
-      \{% end %}
-    \{% else %}
-      \{% for name in names %}
-        \{% if name.is_a?(TypeDeclaration) %}
-          {{var_prefix}}\{{name}}
+      {% else %}
+        {{ raise "[Using Propiary]: names given to `property` must be type declarations (e.g. `name : String`)" }}
+      {% end %}
+    {% else %}
+      {% for name in names %}
+        {% if name.is_a?(TypeDeclaration) %}
+          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          @{{name}}
 
-          def {{method_prefix}}\{{name.var.id}}? : \{{name.type}}
-            {{var_prefix}}\{{name.var.id}}
+          def {{name.var.id}} : {{name.type}}
+            @{{name.var.id}}
           end
-        \{% elsif name.is_a?(Assign) %}
-          {{var_prefix}}\{{name}}
 
-          def {{method_prefix}}\{{name.target.id}}?
-            {{var_prefix}}\{{name.target.id}}
+          def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
           end
-        \{% else %}
-          def {{method_prefix}}\{{name.id}}?
-            {{var_prefix}}\{{name.id}}
-          end
-        \{% end %}
-      \{% end %}
-    \{% end %}
+        {% else %}
+          {{ raise "[Using Propiary]: names given to `property` must be type declarations (e.g. `name : String`)" }}
+        {% end %}
+      {% end %}
+    {% end %}
   end
 
-  macro {{macro_prefix}}setter(*names)
-    \{% for name in names %}
-      \{% if name.is_a?(TypeDeclaration) %}
-        {{var_prefix}}\{{name}}
+  macro property!(*names)
+    getter! {{*names}}
 
-        def {{method_prefix}}\{{name.var.id}}=({{var_prefix}}\{{name.var.id}} : \{{name.type}})
+    {% for name in names %}
+      {% if name.is_a?(TypeDeclaration) %}
+        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+        def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
         end
-      \{% elsif name.is_a?(Assign) %}
-        {{var_prefix}}\{{name}}
-
-        def {{method_prefix}}\{{name.target.id}}=({{var_prefix}}\{{name.target.id}})
-        end
-      \{% else %}
-        def {{method_prefix}}\{{name.id}}=({{var_prefix}}\{{name.id}})
-        end
-      \{% end %}
-    \{% end %}
+      {% else %}
+        {{ raise "[Using Propiary]: names given to `property!` must be type declarations (e.g. `name : String`)" }}
+      {% end %}
+    {% end %}
   end
 
-  macro {{macro_prefix}}property(*names, &block)
-    \{% if block %}
-      \{% if names.size != 1 %}
-        \{{ raise "Only one argument can be passed to `property` with a block" }}
-      \{% end %}
+  macro property?(*names, &block)
+    {% if block %}
+      {% if names.size != 1 %}
+        {{ raise "[Using Propiary]: Only one argument can be passed to `property?` with a block" }}
+      {% end %}
 
-      \{% name = names[0] %}
+      {% name = names[0] %}
 
-      {{macro_prefix}}setter \{{name}}
+      {% if name.is_a?(TypeDeclaration) %}
+        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+        @{{name.var.id}} : {{name.type}}?
 
-      \{% if name.is_a?(TypeDeclaration) %}
-        {{var_prefix}}\{{name.var.id}} : \{{name.type}}?
-
-        def {{method_prefix}}\{{name.var.id}}
-          if (value = {{var_prefix}}\{{name.var.id}}).nil?
-            {{var_prefix}}\{{name.var.id}} = \{{yield}}
-          else
-            value
-          end
-        end
-      \{% else %}
-        def {{method_prefix}}\{{name.id}}
-          if (value = {{var_prefix}}\{{name.id}}).nil?
-            {{var_prefix}}\{{name.id}} = \{{yield}}
-          else
-            value
-          end
-        end
-      \{% end %}
-    \{% else %}
-      \{% for name in names %}
-        \{% if name.is_a?(TypeDeclaration) %}
-          {{var_prefix}}\{{name}}
-
-          def {{method_prefix}}\{{name.var.id}} : \{{name.type}}
-            {{var_prefix}}\{{name.var.id}}
-          end
-
-          def {{method_prefix}}\{{name.var.id}}=({{var_prefix}}\{{name.var.id}} : \{{name.type}})
-          end
-        \{% elsif name.is_a?(Assign) %}
-          {{var_prefix}}\{{name}}
-
-          def {{method_prefix}}\{{name.target.id}}
-            {{var_prefix}}\{{name.target.id}}
-          end
-
-          def {{method_prefix}}\{{name.target.id}}=({{var_prefix}}\{{name.target.id}})
-          end
-        \{% else %}
-          def {{method_prefix}}\{{name.id}}
-            {{var_prefix}}\{{name.id}}
-          end
-
-          def {{method_prefix}}\{{name.id}}=({{var_prefix}}\{{name.id}})
-          end
-        \{% end %}
-      \{% end %}
-    \{% end %}
-  end
-
-  macro {{macro_prefix}}property!(*names)
-    {{macro_prefix}}getter! \{{*names}}
-
-    \{% for name in names %}
-      \{% if name.is_a?(TypeDeclaration) %}
-        def {{method_prefix}}\{{name.var.id}}=({{var_prefix}}\{{name.var.id}} : \{{name.type}})
-        end
-      \{% else %}
-        def {{method_prefix}}\{{name.id}}=({{var_prefix}}\{{name.id}})
-        end
-      \{% end %}
-    \{% end %}
-  end
-
-  macro {{macro_prefix}}property?(*names, &block)
-    \{% if block %}
-      \{% if names.size != 1 %}
-        \{{ raise "Only one argument can be passed to `property?` with a block" }}
-      \{% end %}
-
-      \{% name = names[0] %}
-
-      \{% if name.is_a?(TypeDeclaration) %}
-        {{var_prefix}}\{{name.var.id}} : \{{name.type}}?
-
-        def {{method_prefix}}\{{name.var.id}}?
-          if (value = {{var_prefix}}\{{name.var.id}}).nil?
-            {{var_prefix}}\{{name.var.id}} = \{{yield}}
+        def {{name.var.id}}?
+          if (value = @{{name.var.id}}).nil?
+            @{{name.var.id}} = {{yield}}
           else
             value
           end
         end
 
-        def {{method_prefix}}\{{name.var.id}}=({{var_prefix}}\{{name.var.id}} : \{{name.type}})
+        def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
         end
-      \{% else %}
-        def {{method_prefix}}\{{name.id}}?
-          if (value = {{var_prefix}}\{{name.id}}).nil?
-            {{var_prefix}}\{{name.id}} = \{{yield}}
-          else
-            value
-          end
-        end
+      {% else %}
+        {{ raise "[Using Propiary]: names given to `property?` must be type declarations (e.g. `name : String`)" }}
+      {% end %}
+    {% else %}
+      {% for name in names %}
+        {% if name.is_a?(TypeDeclaration) %}
+          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          @{{name}}
 
-        def {{method_prefix}}\{{name.id}}=({{var_prefix}}\{{name.id}})
-        end
-      \{% end %}
-    \{% else %}
-      \{% for name in names %}
-        \{% if name.is_a?(TypeDeclaration) %}
-          {{var_prefix}}\{{name}}
-
-          def {{method_prefix}}\{{name.var.id}}? : \{{name.type}}
-            {{var_prefix}}\{{name.var.id}}
+          def {{name.var.id}}? : {{name.type}}
+            @{{name.var.id}}
           end
 
-          def {{method_prefix}}\{{name.var.id}}=({{var_prefix}}\{{name.var.id}} : \{{name.type}})
+          def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
           end
-        \{% elsif name.is_a?(Assign) %}
-          {{var_prefix}}\{{name}}
-
-          def {{method_prefix}}\{{name.target.id}}?
-            {{var_prefix}}\{{name.target.id}}
-          end
-
-          def {{method_prefix}}\{{name.target.id}}=({{var_prefix}}\{{name.target.id}})
-          end
-        \{% else %}
-          def {{method_prefix}}\{{name.id}}?
-            {{var_prefix}}\{{name.id}}
-          end
-
-          def {{method_prefix}}\{{name.id}}=({{var_prefix}}\{{name.id}})
-          end
-        \{% end %}
-      \{% end %}
-    \{% end %}
+        {% else %}
+          {{ raise "[Using Propiary]: names given to `property?` must be type declarations (e.g. `name : String`)" }}
+        {% end %}
+      {% end %}
+    {% end %}
   end
-{% end %}
+end

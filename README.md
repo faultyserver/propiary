@@ -55,6 +55,17 @@ end
 Why does the casing of `Prop_Types` look weird? Specifically to avoid potential naming conflicts with any types you may be defining in your code!
 
 
+## Caveats
+
+This list is of _known_ caveats with this library. There may be more that come up with usage of this library. Please file an issue if you an encounter any issues not listed here. Most likely, bugs will be added as new caveats, rather than attempting to work around them. This is to minimize the different between the macros defined here and the standard library.
+
+- Only properties defined with `TypeDeclaration` nodes can be interpreted and added to the list of constants. This is because at the point of invocation, the macro can't infer the type of the variable. Some `Assign` nodes may be supported in the future
+
+- Type declarations should cover all possible types for a variable. This should be implicitly ensured by the first caveat, but if the
+
+- Inherited properties will not be included in the generated `Prop_Types` list. This can be manually solved by iterating known ancestors in your macro, but otherwise there is no (currently known) way to directly access those variables.
+
+
 ## Motivation
 
 Propiary is a library specifically created as a "standardized" workaround to some caveats of `macro finished` in Crystal. Namely that `@type.instance_vars` is not available outside of method definitions.
