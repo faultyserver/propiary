@@ -3,6 +3,7 @@ module Propiary
     Prop_Types = [] of {name: String, type: String}
   end
 
+
   macro getter(*names, &block)
     {% if block %}
       {% if names.size != 1 %}
@@ -12,30 +13,44 @@ module Propiary
       {% name = names[0] %}
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
-        @{{name.var.id}} : {{name.type}}?
+        {% Prop_Types.push({name: name.var, type: name.type}) %}
+        {{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}
-          if (value = @{{name.var.id}}).nil?
-            @{{name.var.id}} = {{yield}}
+          if (value = {{name.var.id}}).nil?
+            {{name.var.id}} = {{yield}}
           else
             value
           end
         end
       {% else %}
-        {{ raise "[Using Propiary]: names given to `getter` must be type declarations (e.g. `name : String`)" }}
+        def {{name.id}}
+          if (value = {{name.id}}).nil?
+            {{name.id}} = {{yield}}
+          else
+            value
+          end
+        end
       {% end %}
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
-          @{{name}}
+          {% Prop_Types.push({name: name.var, type: name.type}) %}
+          {{name}}
 
           def {{name.var.id}} : {{name.type}}
-            @{{name.var.id}}
+            {{name.var.id}}
+          end
+        {% elsif name.is_a?(Assign) %}
+          {{name}}
+
+          def {{name.target.id}}
+            {{name.target.id}}
           end
         {% else %}
-          {{ raise "[Using Propiary]: names given to `getter` must be type declarations (e.g. `name : String`)" }}
+          def {{name.id}}
+            {{name.id}}
+          end
         {% end %}
       {% end %}
     {% end %}
@@ -44,19 +59,17 @@ module Propiary
   macro getter!(*names)
     {% for name in names %}
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
-        @{{name}}?
+        {% Prop_Types.push({name: name.var, type: name.type}) %}
+        {{name}}?
         {% name = name.var %}
-      {% else %}
-        {{ raise "[Using Propiary]: names given to `getter!` must be type declarations (e.g. `name : String`)" }}
       {% end %}
 
       def {{name.id}}?
-        @{{name.id}}
+        {{name.id}}
       end
 
       def {{name.id}}
-        @{{name.id}}.not_nil!
+        {{name.id}}.not_nil!
       end
     {% end %}
   end
@@ -70,30 +83,44 @@ module Propiary
       {% name = names[0] %}
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
-        @{{name.var.id}} : {{name.type}}?
+        {% Prop_Types.push({name: name.var, type: name.type}) %}
+        {{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}?
-          if (value = @{{name.var.id}}).nil?
-            @{{name.var.id}} = {{yield}}
+          if (value = {{name.var.id}}).nil?
+            {{name.var.id}} = {{yield}}
           else
             value
           end
         end
       {% else %}
-        {{ raise "[Using Propiary]: names given to `getter?` must be type declarations (e.g. `name : String`)" }}
+        def {{name.id}}?
+          if (value = {{name.id}}).nil?
+            {{name.id}} = {{yield}}
+          else
+            value
+          end
+        end
       {% end %}
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
-          @{{name}}
+          {% Prop_Types.push({name: name.var, type: name.type}) %}
+          {{name}}
 
           def {{name.var.id}}? : {{name.type}}
-            @{{name.var.id}}
+            {{name.var.id}}
+          end
+        {% elsif name.is_a?(Assign) %}
+          {{name}}
+
+          def {{name.target.id}}?
+            {{name.target.id}}
           end
         {% else %}
-          {{ raise "[Using Propiary]: names given to `getter?` must be type declarations (e.g. `name : String`)" }}
+          def {{name.id}}?
+            {{name.id}}
+          end
         {% end %}
       {% end %}
     {% end %}
@@ -102,13 +129,19 @@ module Propiary
   macro setter(*names)
     {% for name in names %}
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
-        @{{name}}
+        {% Prop_Types.push({name: name.var, type: name.type}) %}
+        {{name}}
 
-        def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
+        def {{name.var.id}}=({{name.var.id}} : {{name.type}})
+        end
+      {% elsif name.is_a?(Assign) %}
+        {{name}}
+
+        def {{name.target.id}}=({{name.target.id}})
         end
       {% else %}
-        {{ raise "[Using Propiary]: names given to `setter` must be type declarations (e.g. `name : String`)" }}
+        def {{name.id}}=({{name.id}})
+        end
       {% end %}
     {% end %}
   end
@@ -124,33 +157,53 @@ module Propiary
       setter {{name}}
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
-        @{{name.var.id}} : {{name.type}}?
+        {% Prop_Types.push({name: name.var, type: name.type}) %}
+        {{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}
-          if (value = @{{name.var.id}}).nil?
-            @{{name.var.id}} = {{yield}}
+          if (value = {{name.var.id}}).nil?
+            {{name.var.id}} = {{yield}}
           else
             value
           end
         end
       {% else %}
-        {{ raise "[Using Propiary]: names given to `property` must be type declarations (e.g. `name : String`)" }}
+        def {{name.id}}
+          if (value = {{name.id}}).nil?
+            {{name.id}} = {{yield}}
+          else
+            value
+          end
+        end
       {% end %}
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
-          @{{name}}
+          {% Prop_Types.push({name: name.var, type: name.type}) %}
+          {{name}}
 
           def {{name.var.id}} : {{name.type}}
-            @{{name.var.id}}
+            {{name.var.id}}
           end
 
-          def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
+          def {{name.var.id}}=({{name.var.id}} : {{name.type}})
+          end
+        {% elsif name.is_a?(Assign) %}
+          {{name}}
+
+          def {{name.target.id}}
+            {{name.target.id}}
+          end
+
+          def {{name.target.id}}=({{name.target.id}})
           end
         {% else %}
-          {{ raise "[Using Propiary]: names given to `property` must be type declarations (e.g. `name : String`)" }}
+          def {{name.id}}
+            {{name.id}}
+          end
+
+          def {{name.id}}=({{name.id}})
+          end
         {% end %}
       {% end %}
     {% end %}
@@ -161,11 +214,12 @@ module Propiary
 
     {% for name in names %}
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
-        def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
+        {% Prop_Types.push({name: name.var, type: name.type}) %}
+        def {{name.var.id}}=({{name.var.id}} : {{name.type}})
         end
       {% else %}
-        {{ raise "[Using Propiary]: names given to `property!` must be type declarations (e.g. `name : String`)" }}
+        def {{name.id}}=({{name.id}})
+        end
       {% end %}
     {% end %}
   end
@@ -179,36 +233,59 @@ module Propiary
       {% name = names[0] %}
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
-        @{{name.var.id}} : {{name.type}}?
+        {% Prop_Types.push({name: name.var, type: name.type}) %}
+        {{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}?
-          if (value = @{{name.var.id}}).nil?
-            @{{name.var.id}} = {{yield}}
+          if (value = {{name.var.id}}).nil?
+            {{name.var.id}} = {{yield}}
           else
             value
           end
         end
 
-        def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
+        def {{name.var.id}}=({{name.var.id}} : {{name.type}})
         end
       {% else %}
-        {{ raise "[Using Propiary]: names given to `property?` must be type declarations (e.g. `name : String`)" }}
+        def {{name.id}}?
+          if (value = {{name.id}}).nil?
+            {{name.id}} = {{yield}}
+          else
+            value
+          end
+        end
+
+        def {{name.id}}=({{name.id}})
+        end
       {% end %}
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
-          @{{name}}
+          {% Prop_Types.push({name: name.var, type: name.type}) %}
+          {{name}}
 
           def {{name.var.id}}? : {{name.type}}
-            @{{name.var.id}}
+            {{name.var.id}}
           end
 
-          def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
+          def {{name.var.id}}=({{name.var.id}} : {{name.type}})
+          end
+        {% elsif name.is_a?(Assign) %}
+          {{name}}
+
+          def {{name.target.id}}?
+            {{name.target.id}}
+          end
+
+          def {{name.target.id}}=({{name.target.id}})
           end
         {% else %}
-          {{ raise "[Using Propiary]: names given to `property?` must be type declarations (e.g. `name : String`)" }}
+          def {{name.id}}?
+            {{name.id}}
+          end
+
+          def {{name.id}}=({{name.id}})
+          end
         {% end %}
       {% end %}
     {% end %}
