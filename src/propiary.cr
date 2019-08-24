@@ -7,26 +7,26 @@ module Propiary
   macro getter(*names, &block)
     {% if block %}
       {% if names.size != 1 %}
-        {{ raise "[Using Propiary]: Only one argument can be passed to `getter` with a block" }}
+        {{ raise "Only one argument can be passed to `getter` with a block" }}
       {% end %}
 
       {% name = names[0] %}
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var, type: name.type}) %}
-        {{name.var.id}} : {{name.type}}?
+        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+        @{{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}
-          if (value = {{name.var.id}}).nil?
-            {{name.var.id}} = {{yield}}
+          if (value = @{{name.var.id}}).nil?
+            @{{name.var.id}} = {{yield}}
           else
             value
           end
         end
       {% else %}
         def {{name.id}}
-          if (value = {{name.id}}).nil?
-            {{name.id}} = {{yield}}
+          if (value = @{{name.id}}).nil?
+            @{{name.id}} = {{yield}}
           else
             value
           end
@@ -35,21 +35,21 @@ module Propiary
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var, type: name.type}) %}
-          {{name}}
+          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          @{{name}}
 
           def {{name.var.id}} : {{name.type}}
-            {{name.var.id}}
+            @{{name.var.id}}
           end
         {% elsif name.is_a?(Assign) %}
-          {{name}}
+          @{{name}}
 
           def {{name.target.id}}
-            {{name.target.id}}
+            @{{name.target.id}}
           end
         {% else %}
           def {{name.id}}
-            {{name.id}}
+            @{{name.id}}
           end
         {% end %}
       {% end %}
@@ -59,17 +59,17 @@ module Propiary
   macro getter!(*names)
     {% for name in names %}
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var, type: name.type}) %}
-        {{name}}?
+        {% Prop_Types.push({name: name.var.stringify, type: "#{name.type}?"}) %}
+        @{{name}}?
         {% name = name.var %}
       {% end %}
 
       def {{name.id}}?
-        {{name.id}}
+        @{{name.id}}
       end
 
       def {{name.id}}
-        {{name.id}}.not_nil!
+        @{{name.id}}.not_nil!
       end
     {% end %}
   end
@@ -77,26 +77,26 @@ module Propiary
   macro getter?(*names, &block)
     {% if block %}
       {% if names.size != 1 %}
-        {{ raise "[Using Propiary]: Only one argument can be passed to `getter?` with a block" }}
+        {{ raise "Only one argument can be passed to `getter?` with a block" }}
       {% end %}
 
       {% name = names[0] %}
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var, type: name.type}) %}
-        {{name.var.id}} : {{name.type}}?
+        {% Prop_Types.push({name: name.var.stringify, type: "#{name.type}?"}) %}
+        @{{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}?
-          if (value = {{name.var.id}}).nil?
-            {{name.var.id}} = {{yield}}
+          if (value = @{{name.var.id}}).nil?
+            @{{name.var.id}} = {{yield}}
           else
             value
           end
         end
       {% else %}
         def {{name.id}}?
-          if (value = {{name.id}}).nil?
-            {{name.id}} = {{yield}}
+          if (value = @{{name.id}}).nil?
+            @{{name.id}} = {{yield}}
           else
             value
           end
@@ -105,42 +105,44 @@ module Propiary
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var, type: name.type}) %}
-          {{name}}
+          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          @{{name}}
 
           def {{name.var.id}}? : {{name.type}}
-            {{name.var.id}}
+            @{{name.var.id}}
           end
         {% elsif name.is_a?(Assign) %}
-          {{name}}
+          @{{name}}
 
           def {{name.target.id}}?
-            {{name.target.id}}
+            @{{name.target.id}}
           end
         {% else %}
           def {{name.id}}?
-            {{name.id}}
+            @{{name.id}}
           end
         {% end %}
       {% end %}
     {% end %}
   end
 
-  macro setter(*names)
+  macro setter(*names, withTrackedProp=true)
     {% for name in names %}
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var, type: name.type}) %}
-        {{name}}
+        {% if withTrackedProp %}
+          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+        {% end %}
+        @{{name}}
 
-        def {{name.var.id}}=({{name.var.id}} : {{name.type}})
+        def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
         end
       {% elsif name.is_a?(Assign) %}
-        {{name}}
+        @{{name}}
 
-        def {{name.target.id}}=({{name.target.id}})
+        def {{name.target.id}}=(@{{name.target.id}})
         end
       {% else %}
-        def {{name.id}}=({{name.id}})
+        def {{name.id}}=(@{{name.id}})
         end
       {% end %}
     {% end %}
@@ -149,28 +151,28 @@ module Propiary
   macro property(*names, &block)
     {% if block %}
       {% if names.size != 1 %}
-        {{ raise "[Using Propiary]: Only one argument can be passed to `property` with a block" }}
+        {{ raise "Only one argument can be passed to `property` with a block" }}
       {% end %}
 
       {% name = names[0] %}
 
-      setter {{name}}
+      setter {{name}}, withTrackedProp: false
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var, type: name.type}) %}
-        {{name.var.id}} : {{name.type}}?
+        {% Prop_Types.push({name: name.var.stringify, type: "#{name.type}?"}) %}
+        @{{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}
-          if (value = {{name.var.id}}).nil?
-            {{name.var.id}} = {{yield}}
+          if (value = @{{name.var.id}}).nil?
+            @{{name.var.id}} = {{yield}}
           else
             value
           end
         end
       {% else %}
         def {{name.id}}
-          if (value = {{name.id}}).nil?
-            {{name.id}} = {{yield}}
+          if (value = @{{name.id}}).nil?
+            @{{name.id}} = {{yield}}
           else
             value
           end
@@ -179,30 +181,30 @@ module Propiary
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var, type: name.type}) %}
-          {{name}}
+          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          @{{name}}
 
           def {{name.var.id}} : {{name.type}}
-            {{name.var.id}}
+            @{{name.var.id}}
           end
 
-          def {{name.var.id}}=({{name.var.id}} : {{name.type}})
+          def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
           end
         {% elsif name.is_a?(Assign) %}
-          {{name}}
+          @{{name}}
 
           def {{name.target.id}}
-            {{name.target.id}}
+            @{{name.target.id}}
           end
 
-          def {{name.target.id}}=({{name.target.id}})
+          def {{name.target.id}}=(@{{name.target.id}})
           end
         {% else %}
           def {{name.id}}
-            {{name.id}}
+            @{{name.id}}
           end
 
-          def {{name.id}}=({{name.id}})
+          def {{name.id}}=(@{{name.id}})
           end
         {% end %}
       {% end %}
@@ -210,15 +212,15 @@ module Propiary
   end
 
   macro property!(*names)
+    # `getter!` handles setting Prop_Types
     getter! {{*names}}
 
     {% for name in names %}
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var, type: name.type}) %}
-        def {{name.var.id}}=({{name.var.id}} : {{name.type}})
+        def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
         end
       {% else %}
-        def {{name.id}}=({{name.id}})
+        def {{name.id}}=(@{{name.id}})
         end
       {% end %}
     {% end %}
@@ -227,64 +229,64 @@ module Propiary
   macro property?(*names, &block)
     {% if block %}
       {% if names.size != 1 %}
-        {{ raise "[Using Propiary]: Only one argument can be passed to `property?` with a block" }}
+        {{ raise "Only one argument can be passed to `property?` with a block" }}
       {% end %}
 
       {% name = names[0] %}
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var, type: name.type}) %}
-        {{name.var.id}} : {{name.type}}?
+        {% Prop_Types.push({name: name.var.stringify, type: "#{name.type}?"}) %}
+        @{{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}?
-          if (value = {{name.var.id}}).nil?
-            {{name.var.id}} = {{yield}}
+          if (value = @{{name.var.id}}).nil?
+            @{{name.var.id}} = {{yield}}
           else
             value
           end
         end
 
-        def {{name.var.id}}=({{name.var.id}} : {{name.type}})
+        def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
         end
       {% else %}
         def {{name.id}}?
-          if (value = {{name.id}}).nil?
-            {{name.id}} = {{yield}}
+          if (value = @{{name.id}}).nil?
+            @{{name.id}} = {{yield}}
           else
             value
           end
         end
 
-        def {{name.id}}=({{name.id}})
+        def {{name.id}}=(@{{name.id}})
         end
       {% end %}
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var, type: name.type}) %}
-          {{name}}
+          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          @{{name}}
 
           def {{name.var.id}}? : {{name.type}}
-            {{name.var.id}}
+            @{{name.var.id}}
           end
 
-          def {{name.var.id}}=({{name.var.id}} : {{name.type}})
+          def {{name.var.id}}=(@{{name.var.id}} : {{name.type}})
           end
         {% elsif name.is_a?(Assign) %}
-          {{name}}
+          @{{name}}
 
           def {{name.target.id}}?
-            {{name.target.id}}
+            @{{name.target.id}}
           end
 
-          def {{name.target.id}}=({{name.target.id}})
+          def {{name.target.id}}=(@{{name.target.id}})
           end
         {% else %}
           def {{name.id}}?
-            {{name.id}}
+            @{{name.id}}
           end
 
-          def {{name.id}}=({{name.id}})
+          def {{name.id}}=(@{{name.id}})
           end
         {% end %}
       {% end %}
