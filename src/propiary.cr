@@ -1,8 +1,7 @@
-abstract class Object
-  macro inherited
+module Propiary
+  macro included
     Prop_Types = [] of {name: String, type: String}
   end
-
 
   macro getter(*names, &block)
     {% if block %}
