@@ -1,6 +1,17 @@
 module Propiary
   macro included
-    Prop_Types = [] of {name: String, type: String}
+    Prop_Types = [] of {name: String, type: String, nilable: Bool}
+  end
+
+  macro __propiary_push_prop(name)
+    {% plain_type = name.type.resolve.union_types.reject{ |t| t == ::Nil } %}
+    {% is_nilable = name.type.resolve.nilable? %}
+    {%  Prop_Types.push({
+          name: name.var.stringify,
+          type: plain_type.join(" | "),
+          nilable: is_nilable
+        })
+    %}
   end
 
 
@@ -13,7 +24,7 @@ module Propiary
       {% name = names[0] %}
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+        __propiary_push_prop({{name}}?)
         @{{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}
@@ -35,7 +46,7 @@ module Propiary
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          __propiary_push_prop({{name}})
           @{{name}}
 
           def {{name.var.id}} : {{name.type}}
@@ -59,7 +70,7 @@ module Propiary
   macro getter!(*names)
     {% for name in names %}
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: "#{name.type}?"}) %}
+        __propiary_push_prop({{name}}?)
         @{{name}}?
         {% name = name.var %}
       {% end %}
@@ -83,7 +94,7 @@ module Propiary
       {% name = names[0] %}
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: "#{name.type}?"}) %}
+        __propiary_push_prop({{name}}?)
         @{{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}?
@@ -105,7 +116,7 @@ module Propiary
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          __propiary_push_prop({{name}})
           @{{name}}
 
           def {{name.var.id}}? : {{name.type}}
@@ -130,7 +141,7 @@ module Propiary
     {% for name in names %}
       {% if name.is_a?(TypeDeclaration) %}
         {% if withTrackedProp %}
-          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          __propiary_push_prop({{name}})
         {% end %}
         @{{name}}
 
@@ -159,7 +170,7 @@ module Propiary
       setter {{name}}, withTrackedProp: false
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: "#{name.type}?"}) %}
+        __propiary_push_prop({{name}}?)
         @{{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}
@@ -181,7 +192,7 @@ module Propiary
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          __propiary_push_prop({{name}})
           @{{name}}
 
           def {{name.var.id}} : {{name.type}}
@@ -235,7 +246,7 @@ module Propiary
       {% name = names[0] %}
 
       {% if name.is_a?(TypeDeclaration) %}
-        {% Prop_Types.push({name: name.var.stringify, type: "#{name.type}?"}) %}
+        __propiary_push_prop({{name}})
         @{{name.var.id}} : {{name.type}}?
 
         def {{name.var.id}}?
@@ -263,7 +274,7 @@ module Propiary
     {% else %}
       {% for name in names %}
         {% if name.is_a?(TypeDeclaration) %}
-          {% Prop_Types.push({name: name.var.stringify, type: name.type.stringify}) %}
+          __propiary_push_prop({{name}})
           @{{name}}
 
           def {{name.var.id}}? : {{name.type}}

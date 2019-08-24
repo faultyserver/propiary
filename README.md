@@ -4,6 +4,8 @@
 
 Automatically generate a list of instance variable declarations as a constant in your types for use in `macro finished`.
 
+**NOTE:** This currently doesn't really work. It can handle basic `property`, and `getter` calls, but anything that implies nilability will have awkward interactions.
+
 
 ## Installation
 

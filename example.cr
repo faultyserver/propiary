@@ -1,7 +1,9 @@
 require "./src/propiary"
 
 struct User
-  property name : String
+  include Propiary
+
+  property! name : String
   property age : Int32
 
   def initialize(@name, @age)
@@ -9,6 +11,7 @@ struct User
 end
 
 struct Post
+  include Propiary
   getter title : String?
   property posted_at : Time?
 end
